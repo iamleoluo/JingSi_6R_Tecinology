@@ -40,8 +40,21 @@ The project consists of three main Python scripts:
 ## Usage
 
 1. **Data Preprocessing**
-   ```bash
-   python 1.load_data_and_pre-processing.py
+   ```python
+   from load_data_and_pre-processing import PatentDataProcessor
+   
+   # Define category configurations
+   category_configs = [
+       {'column_name': '案件狀態', 'output_filename': 'status_dict.json'},
+       {'column_name': '專利種類', 'output_filename': 'patent_type_dict.json'},
+       {'column_name': '申請國家', 'output_filename': 'country_dict.json'},
+       {'column_name': '專利權人', 'output_filename': 'owner_dict.json'},
+       {'column_name': '事務所名稱', 'output_filename': 'agency_dict.json'}
+   ]
+   
+   # Create processor instance and process data
+   processor = PatentDataProcessor('20250402export.csv')
+   processor.load_data().process_categories(category_configs).save_all_to_json()
    ```
    This will process the input CSV file and create categorized JSON files in the `status_check_result` directory.
 
@@ -54,10 +67,13 @@ The project consists of three main Python scripts:
    ```
 
 3. **Cross Analysis**
-   ```bash
-   python 3.compare.py
+   ```python
+   from compare import CrossAnalyzer
+   
+   analyzer = CrossAnalyzer()
+   result = analyzer.run_analysis()
    ```
-   Follow the interactive prompts to select which attributes to compare.
+   This will start an interactive session where you can select which attributes to compare.
 
 ## Input Data Format
 
