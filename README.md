@@ -1,65 +1,20 @@
-# Patent Case Management and Analysis System
+# Patent and Billing Management System
 
-This project provides a comprehensive solution for managing and analyzing patent case data. It includes functionality for data preprocessing, case searching, and cross-analysis of different patent attributes.
+This project provides two comprehensive solutions:
+1. Patent case management and analysis
+2. Billing information verification and management
 
-## Features
+## 1. Patent Case Management System
 
+### Features
 - Data preprocessing and categorization
 - Case searching by case number
 - Cross-analysis between different patent attributes
 - Export results to CSV format
 - Support for Chinese characters
-- Billing information verification and validation
-- JSON file loading and display
 
-## Billing Information Verification
-
-The system includes functionality for verifying billing information and calculations:
-
-1. `Billing information_calculation_and_verification.py`
-   - Verifies payment calculations across multiple pages
-   - Validates service fees, official fees, and total payments
-   - Checks currency conversion and exchange rates
-   - Verifies company information consistency
-   - Generates detailed verification reports
-   - Saves verification results in JSON format
-
-2. `Load_billing_info.py`
-   - Loads and displays billing information from JSON files
-   - Shows detailed breakdown of payment information
-   - Displays service fee details and invoice information
-   - Presents official fee breakdowns
-
-### Billing Verification Usage
-
-```python
-from Billing information_calculation_and_verification import verify_billing_file, save_verification_results
-
-# Verify a billing file
-file_path = "bills_information/bills_info_json/example.json"
-errors, verification_results, details = verify_billing_file(file_path)
-
-# Save verification results
-result_path = save_verification_results(file_path, errors, verification_results, details)
-```
-
-### Loading Billing Information
-
-```python
-# Run the script and input the JSON filename when prompted
-python Load_billing_info.py
-```
-
-The script will display:
-- Basic payment information
-- Remittance details
-- Service fee breakdown
-- Invoice information
-- Official fee details
-
-## Project Structure
-
-The project consists of three main Python scripts:
+### Project Structure
+The patent management system consists of three main Python scripts:
 
 1. `1. load_data_and_pre-processing.py`
    - Loads the patent data from CSV
@@ -76,6 +31,77 @@ The project consists of three main Python scripts:
    - Generates comparison matrices
    - Exports results to CSV files
 
+### Usage
+```python
+from load_data_and_pre-processing import PatentDataProcessor
+
+# Define category configurations
+category_configs = [
+    {'column_name': '案件狀態', 'output_filename': 'status_dict.json'},
+    {'column_name': '專利種類', 'output_filename': 'patent_type_dict.json'},
+    {'column_name': '申請國家', 'output_filename': 'country_dict.json'},
+    {'column_name': '專利權人', 'output_filename': 'owner_dict.json'},
+    {'column_name': '事務所名稱', 'output_filename': 'agency_dict.json'}
+]
+
+# Create processor instance and process data
+processor = PatentDataProcessor('20250402export.csv')
+processor.load_data().process_categories(category_configs).save_all_to_json()
+```
+
+## 2. Billing Information System
+
+### Features
+- Billing information verification and validation
+- JSON file loading and display
+- Multi-page payment verification
+- Currency conversion validation
+- Company information consistency checks
+
+### Project Structure
+The billing system consists of two main Python scripts:
+
+1. `Billing information_calculation_and_verification.py`
+   - Verifies payment calculations across multiple pages
+   - Validates service fees, official fees, and total payments
+   - Checks currency conversion and exchange rates
+   - Verifies company information consistency
+   - Generates detailed verification reports
+   - Saves verification results in JSON format
+
+2. `Load_billing_info.py`
+   - Loads and displays billing information from JSON files
+   - Shows detailed breakdown of payment information
+   - Displays service fee details and invoice information
+   - Presents official fee breakdowns
+
+### Usage
+
+#### Billing Verification
+```python
+from Billing information_calculation_and_verification import verify_billing_file, save_verification_results
+
+# Verify a billing file
+file_path = "bills_information/bills_info_json/example.json"
+errors, verification_results, details = verify_billing_file(file_path)
+
+# Save verification results
+result_path = save_verification_results(file_path, errors, verification_results, details)
+```
+
+#### Loading Billing Information
+```python
+# Run the script and input the JSON filename when prompted
+python Load_billing_info.py
+```
+
+The script will display:
+- Basic payment information
+- Remittance details
+- Service fee breakdown
+- Invoice information
+- Official fee details
+
 ## Dependencies
 
 - pandas
@@ -84,46 +110,9 @@ The project consists of three main Python scripts:
 - datetime
 - collections
 
-## Usage
-
-1. **Data Preprocessing**
-   ```python
-   from load_data_and_pre-processing import PatentDataProcessor
-   
-   # Define category configurations
-   category_configs = [
-       {'column_name': '案件狀態', 'output_filename': 'status_dict.json'},
-       {'column_name': '專利種類', 'output_filename': 'patent_type_dict.json'},
-       {'column_name': '申請國家', 'output_filename': 'country_dict.json'},
-       {'column_name': '專利權人', 'output_filename': 'owner_dict.json'},
-       {'column_name': '事務所名稱', 'output_filename': 'agency_dict.json'}
-   ]
-   
-   # Create processor instance and process data
-   processor = PatentDataProcessor('20250402export.csv')
-   processor.load_data().process_categories(category_configs).save_all_to_json()
-   ```
-   This will process the input CSV file and create categorized JSON files in the `status_check_result` directory.
-
-2. **Case Searching**
-   ```python
-   from searching import CaseSearcher
-   
-   searcher = CaseSearcher()
-   searcher.query_case('2024-001-T-TW')
-   ```
-
-3. **Cross Analysis**
-   ```python
-   from compare import CrossAnalyzer
-   
-   analyzer = CrossAnalyzer()
-   result = analyzer.run_analysis()
-   ```
-   This will start an interactive session where you can select which attributes to compare.
-
 ## Input Data Format
 
+### Patent System
 The system expects a CSV file with the following columns:
 - 公司案號 (Company Case Number)
 - 案件狀態 (Case Status)
@@ -132,11 +121,24 @@ The system expects a CSV file with the following columns:
 - 專利權人 (Patent Owner)
 - 事務所名稱 (Agency Name)
 
+### Billing System
+The system expects JSON files with the following structure:
+- Page 1: Basic payment information
+- Page 2: Detailed service fees
+- Page 3: Invoice information
+- Page 4: Official fees
+
 ## Output
 
+### Patent System
 - Processed data is saved in JSON format in the `status_check_result` directory
 - Cross-analysis results are saved as CSV files in the `compare_result` directory
 - Search results are displayed in the console
+
+### Billing System
+- Verification results are saved in JSON format in the `bills_information/json_verification_result` directory
+- All timestamps in output files are in the format YYYYMMDD_HHMMSS
+- The system automatically creates necessary directories if they don't exist
 
 ## Notes
 
