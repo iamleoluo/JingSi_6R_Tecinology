@@ -34,7 +34,7 @@ KNOWN_COMPANIES = {
     )
 }
 
-class BillingVerifier:
+class InvoicingVerifier:
     def __init__(self, json_data: Dict[str, Any]):
         self.data = json_data
         self.errors = []
@@ -218,18 +218,18 @@ class BillingVerifier:
             "page4": self.page4_details
         }
 
-def verify_billing_file(file_path: str) -> tuple[List[str], List[str], Dict]:
-    """Verify a billing JSON file"""
+def verify_invoicing_file(file_path: str) -> tuple[List[str], List[str], Dict]:
+    """Verify an invoicing JSON file"""
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
-    verifier = BillingVerifier(data)
+    verifier = InvoicingVerifier(data)
     return verifier.verify_all()
 
 def save_verification_results(file_path: str, errors: List[str], verification_results: List[str], details: Dict):
     """Save verification results to a JSON file"""
     # Create results directory if it doesn't exist
-    results_dir = "bills_information/json_verification_result"
+    results_dir = "invoices_information/json_verification_result"
     os.makedirs(results_dir, exist_ok=True)
     
     # Get the original filename without extension
@@ -310,8 +310,8 @@ def print_verification_details(details: Dict):
 
 if __name__ == "__main__":
     # Example usage
-    file_path = "bills_information/bills_info_json/240529-WP2405001P-淨斯-請款單(JP,US,PH,MY,ID)-v1F.json"
-    errors, verification_results, details = verify_billing_file(file_path)
+    file_path = "invoices_information/invoices_info_json/240529-WP2405001P-淨斯-請款單(JP,US,PH,MY,ID)-v1F.json"
+    errors, verification_results, details = verify_invoicing_file(file_path)
     
     # Save verification results
     result_path = save_verification_results(file_path, errors, verification_results, details)
