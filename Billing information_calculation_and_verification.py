@@ -40,12 +40,27 @@ class BillingVerifier:
         self.errors = []
         self.verification_results = []
         self.page2_details = []
+        self.page1_details = {}
+        self.page3_details = {}
+        self.page4_details = {}
 
     def verify_page1_payment(self):
         """Verify page 1 payment calculations"""
         service_fee = self.data["page1"]["服務費"]
         official_fee = self.data["page1"]["官費"]
         total_payment = self.data["page1"]["付款金額"]
+        
+        # Store page 1 details
+        self.page1_details = {
+            "單號": self.data["page1"]["單號"],
+            "日期": self.data["page1"]["日期"],
+            "服務費": service_fee,
+            "官費": official_fee,
+            "付款金額": total_payment,
+            "付款期限": self.data["page1"]["付款期限"],
+            "匯款資訊": self.data["page1"]["匯款資訊"],
+            "status": "correct" if service_fee + official_fee == total_payment else "incorrect"
+        }
         
         if service_fee + official_fee != total_payment:
             self.errors.append(f"Page 1: 服務費({service_fee}) + 官費({official_fee}) != 付款金額({total_payment})")
@@ -72,7 +87,7 @@ class BillingVerifier:
                 "合計 (NTD)": total_fee,
                 "原幣金額": item["原幣金額"],
                 "匯率": item["匯率"],
-                "計算結果": "正確" if service_fee + converted_fee == total_fee else "錯誤"
+                "status": "correct" if service_fee + converted_fee == total_fee else "incorrect"
             }
             self.page2_details.append(item_details)
             
@@ -98,6 +113,17 @@ class BillingVerifier:
         tax_amount = self.data["page3"]["發票金額"]["營業稅金額"]
         total_amount = self.data["page3"]["發票金額"]["總金額"]
         
+        # Store page 3 details
+        self.page3_details = {
+            "發票資訊": self.data["page3"]["發票資訊"],
+            "發票金額": {
+                "服務費金額": service_amount,
+                "營業稅金額": tax_amount,
+                "總金額": total_amount
+            },
+            "status": "correct" if service_amount + tax_amount == total_amount and total_amount == self.data["page1"]["服務費"] else "incorrect"
+        }
+        
         invoice_valid = True
         
         if service_amount + tax_amount != total_amount:
@@ -116,7 +142,26 @@ class BillingVerifier:
 
     def verify_page4_official_fees(self):
         """Verify page 4 official fees"""
+        # Skip verification if official fee is 0
+        if self.data["page1"]["官費"] == 0:
+            self.page4_details = {
+                "官(規)費明細": [],
+                "官費總計": 0,
+                "status": "skip",
+                "message": "No official fees to verify"
+            }
+            self.verification_results.append("ℹ️ Page 4 官費驗證跳過：無官費項目")
+            return
+
         official_fee_total = sum(item["金額"] for item in self.data["page4"]["官(規)費明細"])
+        
+        # Store page 4 details
+        self.page4_details = {
+            "官(規)費明細": self.data["page4"]["官(規)費明細"],
+            "官費總計": official_fee_total,
+            "status": "correct" if official_fee_total == self.data["page1"]["官費"] else "incorrect"
+        }
+        
         if official_fee_total != self.data["page1"]["官費"]:
             self.errors.append(f"Page 4 官費總計({official_fee_total}) != Page 1 官費({self.data['page1']['官費']})")
             self.verification_results.append("❌ Page 4 官費驗證失敗")
@@ -166,9 +211,14 @@ class BillingVerifier:
         self.verify_page4_official_fees()
         self.verify_company_info()
         
-        return self.errors, self.verification_results, self.page2_details
+        return self.errors, self.verification_results, {
+            "page1": self.page1_details,
+            "page2": self.page2_details,
+            "page3": self.page3_details,
+            "page4": self.page4_details
+        }
 
-def verify_billing_file(file_path: str) -> tuple[List[str], List[str], List[Dict]]:
+def verify_billing_file(file_path: str) -> tuple[List[str], List[str], Dict]:
     """Verify a billing JSON file"""
     with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -176,7 +226,7 @@ def verify_billing_file(file_path: str) -> tuple[List[str], List[str], List[Dict
     verifier = BillingVerifier(data)
     return verifier.verify_all()
 
-def save_verification_results(file_path: str, errors: List[str], verification_results: List[str], page2_details: List[Dict]):
+def save_verification_results(file_path: str, errors: List[str], verification_results: List[str], details: Dict):
     """Save verification results to a JSON file"""
     # Create results directory if it doesn't exist
     results_dir = "bills_information/json_verification_result"
@@ -196,8 +246,8 @@ def save_verification_results(file_path: str, errors: List[str], verification_re
         "original_file": file_path,
         "verification_results": verification_results,
         "errors": errors,
-        "page2_details": page2_details,
-        "overall_status": "通過" if not errors else "失敗"
+        "details": details,
+        "overall_status": "pass" if not errors else "fail"
     }
     
     # Save to JSON file
@@ -206,13 +256,65 @@ def save_verification_results(file_path: str, errors: List[str], verification_re
     
     return result_path
 
+def print_verification_details(details: Dict):
+    """Print detailed verification information"""
+    print("\n=== 詳細驗證資訊 ===")
+    
+    # Page 1
+    print("\nPage 1 付款資訊：")
+    print(f"單號: {details['page1']['單號']}")
+    print(f"日期: {details['page1']['日期']}")
+    print(f"服務費: {details['page1']['服務費']}")
+    print(f"官費: {details['page1']['官費']}")
+    print(f"付款金額: {details['page1']['付款金額']}")
+    print(f"付款期限: {details['page1']['付款期限']}")
+    print(f"status: {details['page1']['status']}")
+    
+    # Page 2
+    print("\nPage 2 費用明細：")
+    for item in details['page2']:
+        print(f"\n序號: {item['序號']}")
+        print(f"申請人: {item['申請人']}")
+        print(f"案件名稱: {item['案件名稱']}")
+        print(f"服務項目: {item['服務項目']}")
+        print(f"服務費 (NTD): {item['服務費 (NTD)']}")
+        print(f"折算金額 (NTD): {item['折算金額 (NTD)']}")
+        print(f"合計 (NTD): {item['合計 (NTD)']}")
+        if item['原幣金額']:
+            print(f"原幣金額: {item['原幣金額']}")
+            print(f"匯率: {item['匯率']}")
+        print(f"status: {item['status']}")
+    
+    # Page 3
+    print("\nPage 3 發票資訊：")
+    print(f"發票號碼: {details['page3']['發票資訊']['發票號碼']}")
+    print(f"買方: {details['page3']['發票資訊']['買方']}")
+    print(f"統一編號: {details['page3']['發票資訊']['統一編號']}")
+    print(f"地址: {details['page3']['發票資訊']['地址']}")
+    print("\n發票金額：")
+    print(f"服務費金額: {details['page3']['發票金額']['服務費金額']}")
+    print(f"營業稅金額: {details['page3']['發票金額']['營業稅金額']}")
+    print(f"總金額: {details['page3']['發票金額']['總金額']}")
+    print(f"status: {details['page3']['status']}")
+    
+    # Page 4
+    print("\nPage 4 官費資訊：")
+    if details['page4']['status'] == 'skip':
+        print("No official fees to verify")
+    else:
+        for item in details['page4']['官(規)費明細']:
+            print(f"項目: {item['項目']}")
+            print(f"金額: {item['金額']}")
+        print(f"官費總計: {details['page4']['官費總計']}")
+        print(f"status: {details['page4']['status']}")
+
 if __name__ == "__main__":
     # Example usage
-    file_path = "bills_information/bills_info_json/240618-WP2405002GP-淨斯-請款單(CN,US)-v1F.json"
-    errors, verification_results, page2_details = verify_billing_file(file_path)
+    file_path = "bills_information/bills_info_json/240529-WP2405001P-淨斯-請款單(JP,US,PH,MY,ID)-v1F.json"
+    errors, verification_results, details = verify_billing_file(file_path)
     
     # Save verification results
-    result_path = save_verification_results(file_path, errors, verification_results, page2_details)
+    result_path = save_verification_results(file_path, errors, verification_results, details)
     
     print("\n=== 帳單驗證報告 ===")
     print("\n驗證項目：")
@@ -224,21 +326,8 @@ if __name__ == "__main__":
         for error in errors:
             print(f"- {error}")
         
-        # Print detailed Page 2 information if verification failed
-        if "Page 2 費用明細驗證失敗" in [r for r in verification_results if r.startswith("❌")]:
-            print("\n=== Page 2 費用明細 ===")
-            for item in page2_details:
-                print(f"\n序號: {item['序號']}")
-                print(f"申請人: {item['申請人']}")
-                print(f"案件名稱: {item['案件名稱']}")
-                print(f"服務項目: {item['服務項目']}")
-                print(f"服務費 (NTD): {item['服務費 (NTD)']}")
-                print(f"折算金額 (NTD): {item['折算金額 (NTD)']}")
-                print(f"合計 (NTD): {item['合計 (NTD)']}")
-                if item['原幣金額']:
-                    print(f"原幣金額: {item['原幣金額']}")
-                    print(f"匯率: {item['匯率']}")
-                print(f"計算結果: {item['計算結果']}")
+        # Print detailed information for all pages
+        print_verification_details(details)
     else:
         print("\n所有驗證通過，沒有發現錯誤。")
     
