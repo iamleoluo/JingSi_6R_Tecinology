@@ -9,6 +9,53 @@ This project provides a comprehensive solution for managing and analyzing patent
 - Cross-analysis between different patent attributes
 - Export results to CSV format
 - Support for Chinese characters
+- Billing information verification and validation
+- JSON file loading and display
+
+## Billing Information Verification
+
+The system includes functionality for verifying billing information and calculations:
+
+1. `Billing information_calculation_and_verification.py`
+   - Verifies payment calculations across multiple pages
+   - Validates service fees, official fees, and total payments
+   - Checks currency conversion and exchange rates
+   - Verifies company information consistency
+   - Generates detailed verification reports
+   - Saves verification results in JSON format
+
+2. `Load_billing_info.py`
+   - Loads and displays billing information from JSON files
+   - Shows detailed breakdown of payment information
+   - Displays service fee details and invoice information
+   - Presents official fee breakdowns
+
+### Billing Verification Usage
+
+```python
+from Billing information_calculation_and_verification import verify_billing_file, save_verification_results
+
+# Verify a billing file
+file_path = "bills_information/bills_info_json/example.json"
+errors, verification_results, details = verify_billing_file(file_path)
+
+# Save verification results
+result_path = save_verification_results(file_path, errors, verification_results, details)
+```
+
+### Loading Billing Information
+
+```python
+# Run the script and input the JSON filename when prompted
+python Load_billing_info.py
+```
+
+The script will display:
+- Basic payment information
+- Remittance details
+- Service fee breakdown
+- Invoice information
+- Official fee details
 
 ## Project Structure
 
